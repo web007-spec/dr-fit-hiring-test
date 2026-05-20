@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
-  Image,
   FlatList,
   StyleSheet,
   TouchableOpacity,
@@ -10,33 +9,17 @@ import {
   ListRenderItem,
 } from 'react-native';
 import { fetchRecipes, Recipe } from '../api/recipes';
+import { RecipeImage } from './RecipeImage';
+import { RecipeIngredients } from './RecipeIngredients';
 
 function RecipeCard({ recipe }: { recipe: Recipe }) {
   return (
     <TouchableOpacity style={styles.card} activeOpacity={0.7}>
-      {recipe.image ? (
-        <Image source={{ uri: recipe.image }} style={styles.image} />
-      ) : (
-        <View style={[styles.image, styles.imagePlaceholder]} />
-      )}
+      <RecipeImage imageUrl={recipe.image} />
       <View style={styles.cardBody}>
         <Text style={styles.title}>{recipe.title}</Text>
         <Text style={styles.prepTime}>Prep: {recipe.prep_time} min</Text>
-        <View style={styles.ingredientsBlock}>
-          <Text style={styles.ingredientsHeader}>Ingredients:</Text>
-          {recipe.ingredientsText ? (
-            <Text style={styles.ingredientLine}>{recipe.ingredientsText}</Text>
-          ) : recipe.ingredients.length > 0 ? (
-            recipe.ingredients.map((ing) => (
-              <Text key={`${ing.name}-${ing.unit}`} style={styles.ingredientLine}>
-                • {ing.name} — {ing.weight}
-                {ing.unit}
-              </Text>
-            ))
-          ) : (
-            <Text style={styles.ingredientLine}>No ingredients listed.</Text>
-          )}
-        </View>
+        <RecipeIngredients recipe={recipe} />
       </View>
     </TouchableOpacity>
   );
@@ -133,14 +116,6 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
     elevation: 1,
   },
-  image: {
-    width: '100%',
-    height: 160,
-    backgroundColor: '#f0f0f0',
-  },
-  imagePlaceholder: {
-    backgroundColor: '#d0d0d0',
-  },
   cardBody: {
     padding: 14,
   },
@@ -153,19 +128,5 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#666',
     marginBottom: 10,
-  },
-  ingredientsBlock: {
-    marginTop: 4,
-  },
-  ingredientsHeader: {
-    fontSize: 13,
-    fontWeight: '600',
-    marginBottom: 4,
-    color: '#333',
-  },
-  ingredientLine: {
-    fontSize: 13,
-    color: '#444',
-    lineHeight: 18,
   },
 });
