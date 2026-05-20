@@ -1,13 +1,23 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView, StyleSheet } from 'react-native';
 import { RecipeListModal } from './components/RecipeListModal';
+import { RecipeDetailScreen } from './components/RecipeDetailScreen';
 
 export default function App() {
+  const [selectedRecipeId, setSelectedRecipeId] = useState<number | null>(null);
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar style="auto" />
-      <RecipeListModal />
+      {selectedRecipeId === null ? (
+        <RecipeListModal onSelectRecipe={setSelectedRecipeId} />
+      ) : (
+        <RecipeDetailScreen
+          recipeId={selectedRecipeId}
+          onBack={() => setSelectedRecipeId(null)}
+        />
+      )}
     </SafeAreaView>
   );
 }

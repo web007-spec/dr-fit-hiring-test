@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -6,16 +6,27 @@ import {
   StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
+  TextInput,
   ListRenderItem,
 } from 'react-native';
 import { fetchRecipes, Recipe } from '../api/recipes';
 import { RecipeImage } from './RecipeImage';
 import { RecipeIngredients } from './RecipeIngredients';
 
-function RecipeCard({ recipe }: { recipe: Recipe }) {
+type Props = {
+  onSelectRecipe: (id: number) => void;
+};
+
+function RecipeCard({
+  recipe,
+  onPress,
+}: {
+  recipe: Recipe;
+  onPress: () => void;
+}) {
   return (
-    <TouchableOpacity style={styles.card} activeOpacity={0.7}>
-      <RecipeImage imageUrl={recipe.image} />
+    <TouchableOpacity style={styles.card} activeOpacity={0.7} onPress={onPress}>
+      <RecipeImage imageUrl={recipe.image} height={140} />
       <View style={styles.cardBody}>
         <Text style={styles.title}>{recipe.title}</Text>
         <Text style={styles.prepTime}>Prep: {recipe.prep_time} min</Text>
@@ -25,10 +36,22 @@ function RecipeCard({ recipe }: { recipe: Recipe }) {
   );
 }
 
-export function RecipeListModal() {
+function filterRecipesByTitle(recipes: Recipe[], query: string): Recipe[] {
+  const trimmed = query.trim().toLowerCase();
+  if (!trimmed) return recipes;
+  return recipes.filter((recipe) => recipe.title.toLowerCase().includes(trimmed));
+}
+
+export function RecipeListModal({ onSelectRecipe }: Props) {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const filteredRecipes = useMemo(
+    () => filterRecipesByTitle(recipes, searchQuery),
+    [recipes, searchQuery]
+  );
 
   useEffect(() => {
     fetchRecipes()
@@ -42,7 +65,21 @@ export function RecipeListModal() {
       });
   }, []);
 
-  const renderItem: ListRenderItem<Recipe> = ({ item }) => <RecipeCard recipe={item} />;
+  const renderItem: ListRenderItem<Recipe> = ({ item }) => (
+    <RecipeCard recipe={item} onPress={() => onSelectRecipe(item.id)} />
+  );
+
+  const listEmpty = () => {
+    if (recipes.length === 0) return null;
+    return (
+      <View style={styles.emptyState}>
+        <Text style={styles.emptyTitle}>No recipes found</Text>
+        <Text style={styles.emptyBody}>
+          No recipes match &quot;{searchQuery.trim()}&quot;. Try a different search.
+        </Text>
+      </View>
+    );
+  };
 
   if (loading) {
     return (
@@ -63,12 +100,28 @@ export function RecipeListModal() {
   return (
     <View style={styles.container}>
       <Text style={styles.header}>Recipes</Text>
+      <View style={styles.searchRow}>
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Search recipes by name..."
+          placeholderTextColor="#999"
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          autoCapitalize="none"
+          autoCorrect={false}
+          clearButtonMode="while-editing"
+        />
+      </View>
       <FlatList
-        data={recipes}
+        data={filteredRecipes}
         keyExtractor={(item) => String(item.id)}
         renderItem={renderItem}
         style={styles.list}
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={
+          filteredRecipes.length === 0 ? styles.listContentEmpty : styles.listContent
+        }
+        ListEmptyComponent={listEmpty}
+        keyboardShouldPersistTaps="handled"
       />
     </View>
   );
@@ -96,11 +149,46 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 12,
   },
+  searchRow: {
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+  },
+  searchInput: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    fontSize: 16,
+    backgroundColor: '#fafafa',
+    color: '#111',
+  },
   list: {
     flex: 1,
   },
   listContent: {
     paddingBottom: 24,
+  },
+  listContentEmpty: {
+    flexGrow: 1,
+    paddingBottom: 24,
+  },
+  emptyState: {
+    paddingHorizontal: 32,
+    paddingTop: 48,
+    alignItems: 'center',
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 8,
+  },
+  emptyBody: {
+    fontSize: 15,
+    color: '#666',
+    textAlign: 'center',
+    lineHeight: 22,
   },
   card: {
     marginHorizontal: 16,
