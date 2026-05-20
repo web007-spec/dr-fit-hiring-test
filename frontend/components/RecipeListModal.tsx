@@ -3,12 +3,44 @@ import {
   View,
   Text,
   Image,
-  ScrollView,
+  FlatList,
   StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
+  ListRenderItem,
 } from 'react-native';
 import { fetchRecipes, Recipe } from '../api/recipes';
+
+function RecipeCard({ recipe }: { recipe: Recipe }) {
+  return (
+    <TouchableOpacity style={styles.card} activeOpacity={0.7}>
+      {recipe.image ? (
+        <Image source={{ uri: recipe.image }} style={styles.image} />
+      ) : (
+        <View style={[styles.image, styles.imagePlaceholder]} />
+      )}
+      <View style={styles.cardBody}>
+        <Text style={styles.title}>{recipe.title}</Text>
+        <Text style={styles.prepTime}>Prep: {recipe.prep_time} min</Text>
+        <View style={styles.ingredientsBlock}>
+          <Text style={styles.ingredientsHeader}>Ingredients:</Text>
+          {recipe.ingredientsText ? (
+            <Text style={styles.ingredientLine}>{recipe.ingredientsText}</Text>
+          ) : recipe.ingredients.length > 0 ? (
+            recipe.ingredients.map((ing) => (
+              <Text key={`${ing.name}-${ing.unit}`} style={styles.ingredientLine}>
+                • {ing.name} — {ing.weight}
+                {ing.unit}
+              </Text>
+            ))
+          ) : (
+            <Text style={styles.ingredientLine}>No ingredients listed.</Text>
+          )}
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
+}
 
 export function RecipeListModal() {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
@@ -26,6 +58,8 @@ export function RecipeListModal() {
         setLoading(false);
       });
   }, []);
+
+  const renderItem: ListRenderItem<Recipe> = ({ item }) => <RecipeCard recipe={item} />;
 
   if (loading) {
     return (
@@ -46,25 +80,13 @@ export function RecipeListModal() {
   return (
     <View style={styles.container}>
       <Text style={styles.header}>Recipes</Text>
-      <ScrollView style={styles.scroll}>
-        {recipes.map((recipe) => (
-          <TouchableOpacity key={recipe.id} style={styles.card} activeOpacity={0.7}>
-            <Image source={{ uri: recipe.image }} style={styles.image} />
-            <View style={styles.cardBody}>
-              <Text style={styles.title}>{recipe.title}</Text>
-              <Text style={styles.prepTime}>Prep: {recipe.prep_time} min</Text>
-              <View style={styles.ingredientsBlock}>
-                <Text style={styles.ingredientsHeader}>Ingredients:</Text>
-                {recipe.ingredients.map((ing, idx) => (
-                  <Text key={idx} style={styles.ingredientLine}>
-                    • {ing.name} — {ing.weight}{ing.unit}
-                  </Text>
-                ))}
-              </View>
-            </View>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
+      <FlatList
+        data={recipes}
+        keyExtractor={(item) => String(item.id)}
+        renderItem={renderItem}
+        style={styles.list}
+        contentContainerStyle={styles.listContent}
+      />
     </View>
   );
 }
@@ -91,8 +113,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 12,
   },
-  scroll: {
+  list: {
     flex: 1,
+  },
+  listContent: {
+    paddingBottom: 24,
   },
   card: {
     marginHorizontal: 16,
@@ -112,6 +137,9 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 160,
     backgroundColor: '#f0f0f0',
+  },
+  imagePlaceholder: {
+    backgroundColor: '#d0d0d0',
   },
   cardBody: {
     padding: 14,
