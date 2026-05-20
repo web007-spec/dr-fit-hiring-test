@@ -69,9 +69,35 @@ export async function fetchRecipes(): Promise<Recipe[]> {
   return data.map(normalizeRecipe);
 }
 
+export class RecipeNotFoundError extends Error {
+  readonly id: number;
+
+  constructor(id: number) {
+    super(`Recipe ${id} not found`);
+    this.name = 'RecipeNotFoundError';
+    this.id = id;
+  }
+}
+
+export function isRecipeNotFoundError(error: unknown): error is RecipeNotFoundError {
+  return error instanceof RecipeNotFoundError;
+}
+
 export async function fetchRecipe(id: number): Promise<Recipe> {
   const res = await fetch(`${API_BASE}/recipes/${id}`);
-  if (!res.ok) throw new Error(`Failed to fetch recipe: ${res.status}`);
-  const data: RawRecipe = await res.json();
+
+  if (res.status === 404) {
+    throw new RecipeNotFoundError(id);
+  }
+
+  if (!res.ok) {
+    throw new Error(`Failed to fetch recipe: ${res.status}`);
+  }
+
+  const data: RawRecipe | null = await res.json();
+  if (data == null || typeof data.id !== 'number') {
+    throw new RecipeNotFoundError(id);
+  }
+
   return normalizeRecipe(data);
 }
